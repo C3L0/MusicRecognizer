@@ -1,0 +1,35 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+
+# --- Environnements Virtuels ---
+# On ne pousse jamais le venv lui-même
+.venv/
+env/
+venv/
+ENV/
+
+# --- Outil UV ---
+# On garde uv.lock et pyproject.toml, mais pas le cache
+.uv/
+
+# --- Modèles et Données (Très important en ML) ---
+# Si tu télécharges le modèle localement dans un dossier
+models/
+*.bin
+*.pth
+*.onnx
+# Dossier de cache Hugging Face par défaut (si tu le changes)
+.cache/
+
+# --- OS & IDE ---
+.DS_Store
+.vscode/
+.idea/
+
+# --- Secrets ---
+# Pour tes futures clés AWS
+.env
+*.pem

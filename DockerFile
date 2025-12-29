@@ -1,0 +1,22 @@
+# 1. Utiliser une image Python légère
+FROM python:3.11-slim
+
+# 2. Installer uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# 3. Définir le dossier de travail
+WORKDIR /app
+
+# 4. Copier les fichiers de dépendances (optimisation du cache Docker)
+COPY pyproject.toml uv.lock ./
+
+# 5. Créer l'environnement virtuel et installer les dépendances
+# --frozen garantit que les versions sont exactement celles du lockfile
+RUN uv sync --frozen
+
+# 6. Copier le reste du code
+COPY . .
+
+# 7. Exécuter l'API en utilisant le venv créé par uv
+# Le chemin par défaut est /app/.venv/bin/python
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
