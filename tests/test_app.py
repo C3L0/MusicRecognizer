@@ -38,7 +38,7 @@ def test_predict_success():
     sf.write(byte_io, data, 16000, format='WAV')
     byte_io.seek(0)
 
-    files = {"file": ("silence.wav", byte_io, "audio/wav")}
+    files = {"file": ("silence.wav", byte_io, "audio/mp3")}
     response = client.post("/predict", files=files)
     
     assert response.status_code == 200
@@ -46,16 +46,16 @@ def test_predict_success():
     assert "filename" in response.json()
 
     def test_predict_piano():
-    """Vérifie que le modèle identifie correctement un piano."""
-    file_path = "tests/samples/piano.wav"
-    
-    with open(file_path, "rb") as f:
-        files = {"file": ("piano.wav", f, "audio/wav")}
-        response = client.post("/predict", files=files)
-    
-    assert response.status_code == 200
-    prediction = response.json()["prediction"]
-    
-    # On vérifie si le mot 'piano' est dans le top des prédictions
-    # (Selon les labels du modèle AST)
-    assert any("piano" in p.lower() for p in prediction)
+        """Vérifie que le modèle identifie correctement un piano."""
+        file_path = "tests/samples/piano.mp3"
+        
+        with open(file_path, "rb") as f:
+            files = {"file": ("piano.mp3", f, "audio/wav")}
+            response = client.post("/predict", files=files)
+        
+        assert response.status_code == 200
+        prediction = response.json()["prediction"]
+        
+        # On vérifie si le mot 'piano' est dans le top des prédictions
+        # (Selon les labels du modèle AST)
+        assert any("piano" in p.lower() for p in prediction)
