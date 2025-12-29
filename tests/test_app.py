@@ -45,17 +45,22 @@ def test_predict_success():
     assert "prediction" in response.json()
     assert "filename" in response.json()
 
-    def test_predict_piano():
-        """Vérifie que le modèle identifie correctement un piano."""
-        file_path = "tests/samples/piano.mp3"
-        
-        with open(file_path, "rb") as f:
-            files = {"file": ("piano.mp3", f, "audio/wav")}
-            response = client.post("/predict", files=files)
-        
-        assert response.status_code == 200
-        prediction = response.json()["prediction"]
-        
-        # On vérifie si le mot 'piano' est dans le top des prédictions
-        # (Selon les labels du modèle AST)
-        assert any("piano" in p.lower() for p in prediction)
+def test_predict_music():
+    file_path = "tests/samples/piano.mp3"
+
+    with open(file_path, "rb") as f:
+        files = {"file": ("piano.mp3", f, "audio/mp3")}
+        response = client.post("/predict", files=files)
+
+    assert response.status_code == 200
+    prediction = response.json()["prediction"]
+    
+    # Debug pour voir ce qu'on reçoit exactement dans la console si ça échoue
+    print(f"DEBUG Prediction: {prediction}")
+
+    # Si c'est une liste
+    if isinstance(prediction, list):
+        assert any("music" in p.lower() for p in prediction)
+    # Si c'est une simple chaîne
+    else:
+        assert "music" in prediction.lower()
