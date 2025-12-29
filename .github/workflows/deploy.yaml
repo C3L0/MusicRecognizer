@@ -40,15 +40,17 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # 2. Nettoyage agressif : on retire les fichiers de l'index Git sans erreur
-          # On liste les dossiers à supprimer. S'ils n'existent pas, le script continue.
-          git ls-tree -r HEAD --name-only | grep -E '^tests/samples/piano.mp3$' || echo "not present"
-          
-          # 3. Créer un commit de déploiement propre
-          # Le --allow-empty est important au cas où il n'y aurait rien à nettoyer
-          git commit -m "Deployment cleanup" --allow-empty
+          # 2. Supprimer physiquement les fichiers interdits
+          rm -rf tests/ .github/ .pytest_cache/ 2>/dev/null
 
-          # 4. Push vers Hugging Face
-          # On utilise --force pour s'assurer que les fichiers binaires supprimés 
-          # ne bloquent pas la réception côté Hugging Face
-          git push --force https://c3loo:$HF_TOKEN@huggingface.co/spaces/c3loo/sounds_recognizer main
+          # 3. Créer une branche orpheline 'deploy'
+          # Cela crée une branche qui n'a aucun commit parent (historique vide)
+          git checkout --orphan deploy
+
+          # 4. Ajouter les fichiers actuels à cette branche propre
+          git add .
+          git commit -m "Production release without tests"
+
+          # 5. Pousser cette branche propre vers la branche 'main' de Hugging Face
+          # On utilise --force pour écraser le contenu distant par cette version "propre"
+          git push --force https://c3loo:$HF_TOKEN@huggingface.co/spaces/c3loo/sounds_recognizer deploy:main
