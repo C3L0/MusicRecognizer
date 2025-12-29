@@ -15,7 +15,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # 4. Installer les dépendances Python via uv
-RUN uv sync --frozen
+RUN uv sync --frozen --no-dev
 
 # 6. Copier le reste du code
 COPY . .

@@ -1,27 +1,46 @@
-name: Sync to Hugging Face Hub
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [main]
-  # Permet de lancer le déploiement manuellement depuis l'onglet Actions
   workflow_dispatch:
 
 jobs:
-  deploy:
+  # --- JOB 1 : TESTS ---
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Tests
+        # C'est ici que tu lances tes scripts de test
+        # Si cette commande échoue, le job 'deploy' ne se lancera pas
+        run: |
+          uv run pytest tests/ 
+
+  # --- JOB 2 : DEPLOY ---
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test # <--- CRUCIAL : Attend que les tests passent
+    steps:
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          # Obligatoire pour pouvoir pousser vers un autre remote
           lfs: true
 
       - name: Push to Hugging Face
         env:
-          # On récupère le secret que tu viens de créer
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # On force le push vers le dépôt Hugging Face
-          # Remplace bien 'c3loo/sounds_recognizer' s'il y a une erreur dans le nom
           git push --force https://c3loo:$HF_TOKEN@huggingface.co/spaces/c3loo/sounds_recognizer main
