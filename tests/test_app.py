@@ -5,24 +5,24 @@ from src.app import app  # Import de ton instance FastAPI
 
 client = TestClient(app)
 
-def test_read_main():
-    """Vérifie que la route d'accueil répond bien."""
-    response = client.get("/")
+def test_read_health():
+    """On teste /health au lieu de / car / est maintenant l'interface Gradio."""
+    response = client.get("/health")
     assert response.status_code == 200
-    assert "API de reconnaissance musicale active" in response.json()["message"]
+    assert response.json()["status"] == "ok"
+
+def test_predict_invalid_format():
+    """Vérifie que l'API rejette les fichiers qui ne sont pas audio."""
+    files = {"file": ("test.txt", b"hello world", "text/plain")}
+    response = client.post("/predict", files=files)
+    assert response.status_code == 400
+    # On met le texte EXACT que tu as écrit dans app.py
+    assert "Le fichier doit être un audio" in response.json()["detail"]
 
 def test_predict_no_file():
     """Vérifie que l'API renvoie une erreur si aucun fichier n'est envoyé."""
     response = client.post("/predict")
     assert response.status_code == 422  # Unprocessable Entity (FastAPI standard)
-
-def test_predict_invalid_format():
-    """Vérifie que l'API rejette les fichiers qui ne sont pas audio."""
-    # Création d'un faux fichier texte
-    files = {"file": ("test.txt", b"hello world", "text/plain")}
-    response = client.post("/predict", files=files)
-    assert response.status_code == 400
-    assert "Format de fichier non supporté" in response.json()["detail"]
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_predict_success():
