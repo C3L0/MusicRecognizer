@@ -1,4 +1,3 @@
-#Music Recognizer
 ---
 title: Sounds Recognizer
 emoji: 📉
