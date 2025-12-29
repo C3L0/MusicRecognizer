@@ -13,112 +13,71 @@ model_id = "MIT/ast-finetuned-audioset-10-10-0.4593"
 processor = AutoProcessor.from_pretrained(model_id)
 model = ASTForAudioClassification.from_pretrained(model_id)
 
+# 1. Mise à jour de la fonction de traitement pour renvoyer des probabilités
 def process_audio(audio_path):
-    """Fonction noyau pour la prédiction (partagée)"""
-    # Charger et rééchantillonner à 16kHz (requis par AST)
-    y, sr = librosa.load(audio_path, sr=16000)
+    if audio_path is None: return None
     
-    # Préparation des inputs
+    y, sr = librosa.load(audio_path, sr=16000)
     inputs = processor(y, sampling_rate=sr, return_tensors="pt")
     
     with torch.no_grad():
         logits = model(**inputs).logits
     
-    # Récupérer le label avec le score le plus haut
-    predicted_class_ids = torch.argmax(logits, dim=-1).item()
-    prediction = model.config.id2label[predicted_class_ids]
-    return prediction
-
-# --- PARTIE API (FastAPI) ---
-@app.post("/predict")
-async def predict_api(file: UploadFile = File(...)):
-    if not file.content_type.startswith("audio/"):
-        raise HTTPException(status_code=400, detail="Le fichier doit être un audio.")
+    # Calcul des probabilités pour un affichage graphique (Barres)
+    probs = torch.nn.functional.softmax(logits, dim=-1)[0]
+    top5_prob, top5_indices = torch.topk(probs, 5)
     
-    # Sauvegarde temporaire pour traitement
-    temp_path = f"temp_{file.filename}"
-    with open(temp_path, "wb") as f:
-        f.write(await file.read())
+    # On crée un dictionnaire {Label: Score}
+    confidences = {
+        model.config.id2label[idx.item()]: float(prob) 
+        for prob, idx in zip(top5_prob, top5_indices)
+    }
+    return confidences
+
+# 2. Création de l'interface graphique avec gr.Blocks
+
+custom_css = """
+.gradio-container { background-color: #f0f2f5; }
+#title { text-align: center; color: #1a73e8; }
+"""
+with gr.Blocks(css=custom_css, theme=gr.themes.Soft(primary_hue="blue", secondary_hue="slate")) as demo:
+    gr.Markdown(
+        """
+        # 🎵 Music & Sound Recognizer
+        ### Analyse intelligente basée sur le modèle AST (Audio Spectrogram Transformer)
+        """
+    )
     
-    try:
-        res = process_audio(temp_path)
-        return {"prediction": res, "filename": file.filename}
-    finally:
-        import os
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    with gr.Row():
+        # Colonne de gauche : Input
+        with gr.Column(scale=1):
+            audio_input = gr.Audio(
+                label="Fichier Audio", 
+                type="filepath",
+                waveform_options=gr.WaveformOptions(
+                    wave_color="#2196F3",
+                    pending_color="#BBDEFB",
+                )
+            )
+            submit_btn = gr.Button("Analyser le son", variant="primary")
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+        # Colonne de droite : Résultats graphiques
+        with gr.Column(scale=1):
+            label_output = gr.Label(num_top_classes=5, label="Prédictions")
 
-# --- PARTIE INTERFACE (Gradio) ---
-def gradio_interface(audio):
-    if audio is None:
-        return "Veuillez uploader un fichier."
-    return process_audio(audio)
+    # Section exemples pour faciliter le test
+    gr.Examples(
+        examples=["tests/samples/piano.mp3"],
+        inputs=audio_input
+    )
 
-demo = gr.Interface(
-    fn=gradio_interface,
-    inputs=gr.Audio(type="filepath", label="Déposez votre musique ici"),
-    outputs=gr.Label(label="Résultat de la détection"),
-    title="🎵 Music Genre Recognizer",
-    description="Uploadez un extrait sonore et laissez l'IA (AST Model) identifier le contenu.",
-    examples=["tests/samples/piano.mp3"] # Si tu as gardé le fichier
-)
+    # Logique du bouton
+    submit_btn.click(
+        fn=process_audio,
+        inputs=audio_input,
+        outputs=label_output
+    )
 
-# --- FUSION ---
-# On monte l'interface Gradio sur la racine "/" de FastAPI
+# 3. Fusion avec FastAPI
+app = FastAPI()
 app = gr.mount_gradio_app(app, demo, path="/")
-
-# import io
-# import torch
-# import librosa
-# import numpy as np
-# from fastapi import FastAPI, UploadFile, File, HTTPException
-# from transformers import AutoFeatureExtractor, ASTForAudioClassification
-# 
-# app = FastAPI(title="Music Recognition API")
-# 
-# # 1. Configuration du modèle Hugging Face
-# # Ce modèle est entraîné sur AudioSet (527 classes de sons/musiques)
-# MODEL_NAME = "MIT/ast-finetuned-audioset-10-10-0.4593"
-# 
-# print("Chargement du modèle...")
-# feature_extractor = AutoFeatureExtractor.from_pretrained(MODEL_NAME)
-# model = ASTForAudioClassification.from_pretrained(MODEL_NAME)
-# print("Modèle prêt !")
-# 
-# def process_audio(audio_bytes):
-#     # Charger l'audio depuis les bytes (échantillonnage à 16kHz requis par AST)
-#     audio, sr = librosa.load(io.BytesIO(audio_bytes), sr=16000)
-#     
-#     # Préparer les inputs pour le modèle
-#     inputs = feature_extractor(audio, sampling_rate=sr, return_tensors="pt")
-#     
-#     with torch.no_grad():
-#         outputs = model(**inputs)
-#         logits = outputs.logits
-#         
-#     # Récupérer la classe avec le score le plus haut
-#     predicted_class_ids = torch.argmax(logits, dim=-1).item()
-#     prediction_label = model.config.id2label[predicted_class_ids]
-#     
-#     return prediction_label
-# 
-# @app.post("/predict")
-# async def predict(file: UploadFile = File(...)):
-#     # Vérification sommaire du format
-#     if not file.filename.endswith(('.mp3', '.wav', '.flac')):
-#         raise HTTPException(status_code=400, detail="Format de fichier non supporté.")
-# 
-#     try:
-#         audio_content = await file.read()
-#         label = process_audio(audio_content)
-#         return {"filename": file.filename, "prediction": label}
-#     except Exception as e:
-#         return {"error": str(e)}
-# 
-# @app.get("/")
-# def home():
-#     return {"message": "API de reconnaissance musicale active. Utilisez /predict pour envoyer un fichier."}
