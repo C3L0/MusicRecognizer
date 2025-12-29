@@ -1,17 +1,20 @@
-# 1. Utiliser une image Python légère
 FROM python:3.11-slim
+
+# 1. Installer les dépendances système pour l'audio
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # 2. Installer uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# 3. Définir le dossier de travail
 WORKDIR /app
 
-# 4. Copier les fichiers de dépendances (optimisation du cache Docker)
+# 3. Copier les fichiers de dépendances
 COPY pyproject.toml uv.lock ./
 
-# 5. Créer l'environnement virtuel et installer les dépendances
-# --frozen garantit que les versions sont exactement celles du lockfile
+# 4. Installer les dépendances Python via uv
 RUN uv sync --frozen
 
 # 6. Copier le reste du code
