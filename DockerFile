@@ -19,4 +19,4 @@ COPY . .
 
 # 7. Exécuter l'API en utilisant le venv créé par uv
 # Le chemin par défaut est /app/.venv/bin/python
-CMD ["/app/.venv/bin/python", "-m", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "7860"]
