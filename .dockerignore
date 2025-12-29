@@ -1,0 +1,8 @@
+# Ne pas inclure dans l'image Docker
+tests/
+.github/
+.git/
+.pytest_cache/
+__pycache__/
+*.pyc
+.venv/

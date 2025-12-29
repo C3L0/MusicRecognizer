@@ -11,36 +11,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
-
+          python-version: "3.12"
       - name: Install dependencies
         run: uv sync
-
       - name: Run Tests
-        # C'est ici que tu lances tes scripts de test
-        # Si cette commande échoue, le job 'deploy' ne se lancera pas
-        run: |
-          uv run pytest tests/ 
+        run: uv run python -m pytest
 
   # --- JOB 2 : DEPLOY ---
   deploy:
     runs-on: ubuntu-latest
-    needs: test # <--- CRUCIAL : Attend que les tests passent
+    needs: test
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           lfs: true
 
-      - name: Push to Hugging Face
+      - name: Clean and Push to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          # 1. Configurer l'identité Git pour ce job
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          # 2. Supprimer les fichiers inutiles pour la PROD de l'index Git
+          # On garde : src/, Dockerfile, pyproject.toml, uv.lock, README.md
+          # On supprime tout le reste (tests, docs, fichiers cachés)
+          git rm -r --cached tests/ .github/ .pytest_cache/ || true
+          
+          # 3. Créer un commit temporaire pour le déploiement
+          git commit -m "Deployment cleanup: removing tests and CI configs" || true
+
+          # 4. Push vers Hugging Face (écrase la version précédente avec le code propre)
           git push --force https://c3loo:$HF_TOKEN@huggingface.co/spaces/c3loo/sounds_recognizer main
