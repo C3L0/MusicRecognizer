@@ -1,0 +1,27 @@
+name: Sync to Hugging Face Hub
+
+on:
+  push:
+    branches: [main]
+  # Permet de lancer le déploiement manuellement depuis l'onglet Actions
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          # Obligatoire pour pouvoir pousser vers un autre remote
+          lfs: true
+
+      - name: Push to Hugging Face
+        env:
+          # On récupère le secret que tu viens de créer
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # On force le push vers le dépôt Hugging Face
+          # Remplace bien 'c3loo/sounds_recognizer' s'il y a une erreur dans le nom
+          git push --force https://c3loo:$HF_TOKEN@huggingface.co/spaces/c3loo/sounds_recognizer main
