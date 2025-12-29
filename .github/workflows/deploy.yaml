@@ -42,7 +42,7 @@ jobs:
 
           # 2. Nettoyage agressif : on retire les fichiers de l'index Git sans erreur
           # On liste les dossiers à supprimer. S'ils n'existent pas, le script continue.
-          git rm -r --cached tests/ .github/ .pytest_cache/ 2>/dev/null || echo "Certains dossiers déjà absents"
+          git rm -r --cached tests/ tests/samples/ .github/ .pytest_cache/ 2>/dev/null || echo "Some folders already removed"
           
           # 3. Créer un commit de déploiement propre
           # Le --allow-empty est important au cas où il n'y aurait rien à nettoyer
