@@ -36,17 +36,19 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 1. Configurer l'identité Git pour ce job
+          # 1. Configurer l'identité Git
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # 2. Supprimer les fichiers inutiles pour la PROD de l'index Git
-          # On garde : src/, Dockerfile, pyproject.toml, uv.lock, README.md
-          # On supprime tout le reste (tests, docs, fichiers cachés)
-          git rm -r --cached tests/ .github/ .pytest_cache/ || true
+          # 2. Nettoyage agressif : on retire les fichiers de l'index Git sans erreur
+          # On liste les dossiers à supprimer. S'ils n'existent pas, le script continue.
+          git rm -r --cached tests/ .github/ .pytest_cache/ 2>/dev/null || echo "Certains dossiers déjà absents"
           
-          # 3. Créer un commit temporaire pour le déploiement
-          git commit -m "Deployment cleanup: removing tests and CI configs" || true
+          # 3. Créer un commit de déploiement propre
+          # Le --allow-empty est important au cas où il n'y aurait rien à nettoyer
+          git commit -m "Deployment cleanup" --allow-empty
 
-          # 4. Push vers Hugging Face (écrase la version précédente avec le code propre)
+          # 4. Push vers Hugging Face
+          # On utilise --force pour s'assurer que les fichiers binaires supprimés 
+          # ne bloquent pas la réception côté Hugging Face
           git push --force https://c3loo:$HF_TOKEN@huggingface.co/spaces/c3loo/sounds_recognizer main
