@@ -32,4 +32,4 @@ models/
 # --- Secrets ---
 # Pour tes futures clés AWS
 .env
-*.pem
+*.pemt
