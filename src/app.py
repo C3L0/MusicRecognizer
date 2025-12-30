@@ -1,4 +1,5 @@
 import gradio as gr
+import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
 import torch
 import librosa
@@ -7,7 +8,7 @@ import os
 from transformers import AutoProcessor, ASTForAudioClassification
 
 # 1. Initialisation de FastAPI
-app = FastAPI(title="Music Recognizer API")
+app = FastAPI(title="Sound Recognizer API")
 
 # 2. Chargement du modèle (Ajout de use_fast=True pour enlever le warning)
 model_id = "MIT/ast-finetuned-audioset-10-10-0.4593"
@@ -60,20 +61,27 @@ with gr.Blocks(css=custom_css) as demo:
     with gr.Row():
         with gr.Column():
             audio_input = gr.Audio(
-                label="Fichier Audio", 
+                label="Enregistrez ou déposez un son", 
                 type="filepath",
-                # CORRECTION : Noms des arguments pour Gradio 6.0
+                # On active explicitement le micro et l'upload de fichier
+                sources=["microphone", "upload"],
                 waveform_options=gr.WaveformOptions(
                     waveform_color="#2196F3",
                     waveform_progress_color="#BBDEFB",
                 )
             )
-            submit_btn = gr.Button("Analyser le son", variant="primary")
+            submit_btn = gr.Button("🚀 Analyser maintenant", variant="primary")
 
         with gr.Column():
             label_output = gr.Label(num_top_classes=5, label="Prédictions")
 
     submit_btn.click(fn=process_audio, inputs=audio_input, outputs=label_output)
+    
+    # ANALYSE AUTOMATIQUE : se déclenche au changement (upload ou fin d'enregistrement)
+    audio_input.change(fn=process_audio, inputs=audio_input, outputs=label_output)
 
 # MONTAGE FINAL (Gradio vient s'ajouter à FastAPI sans écraser les routes)
 app = gr.mount_gradio_app(app, demo, path="/")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=7860)
