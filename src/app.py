@@ -1,3 +1,4 @@
+import logging
 import gradio as gr
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -6,6 +7,7 @@ import librosa
 import numpy as np
 import os
 from transformers import AutoProcessor, ASTForAudioClassification
+import psutil
 
 # 1. Initialisation de FastAPI
 app = FastAPI(title="Sound Recognizer API")
@@ -14,6 +16,13 @@ app = FastAPI(title="Sound Recognizer API")
 model_id = "MIT/ast-finetuned-audioset-10-10-0.4593"
 processor = AutoProcessor.from_pretrained(model_id, use_fast=True)
 model = ASTForAudioClassification.from_pretrained(model_id)
+
+def get_system_info():
+    # Récupère l'utilisation de la RAM
+    mem = psutil.virtual_memory()
+    # Récupère l'utilisation du CPU
+    cpu = psutil.cpu_percent()
+    return f"💻 CPU: {cpu}% | 🧠 RAM: {mem.percent}% ({mem.used // (1024**2)}MB / {mem.total // (1024**2)}MB)"
 
 def process_audio(audio_path):
     """Logique partagée entre l'API et l'Interface"""
@@ -51,6 +60,23 @@ async def predict_api(file: UploadFile = File(...)):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
+@app.get("/admin/stats")
+async def get_admin_stats(token: str = None):
+    # Optionnel : une petite sécurité par token
+    if token != "admin":
+        raise HTTPException(status_code=401, detail="Non autorisé")
+        
+    mem = psutil.virtual_memory()
+    return {
+        "cpu_usage_percent": psutil.cpu_percent(),
+        "ram_usage": {
+            "percent": mem.percent,
+            "used_mb": mem.used // (1024**2),
+            "total_mb": mem.total // (1024**2)
+        },
+        "active_pid": os.getpid()
+    }
+
 # --- CONFIGURATION GRADIO ---
 
 custom_css = "#title { text-align: center; color: #1a73e8; }"
@@ -74,6 +100,19 @@ with gr.Blocks(css=custom_css) as demo:
 
         with gr.Column():
             label_output = gr.Label(num_top_classes=5, label="Prédictions")
+        
+        with gr.Accordion("🛠 Panneau Admin", open=False): # Fermé par défaut
+            admin_key = gr.Textbox(label="Clé Admin", type="password")
+            admin_output = gr.JSON(label="État du Système")
+            btn_stats = gr.Button("Actualiser les stats")
+            
+            def show_stats(key):
+                if key == "admin": # Ton code secret
+                    mem = psutil.virtual_memory()
+                    return {"cpu": psutil.cpu_percent(), "ram_percent": mem.percent}
+                return {"error": "Clé invalide"}
+
+            btn_stats.click(fn=show_stats, inputs=admin_key, outputs=admin_output)
 
     submit_btn.click(fn=process_audio, inputs=audio_input, outputs=label_output)
     
