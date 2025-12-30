@@ -41,7 +41,7 @@ jobs:
           git config user.email "github-actions@github.com"
 
           # 2. Supprimer physiquement les fichiers interdits
-          rm -rf tests/ .github/ .pytest_cache/ 2>/dev/null
+          rm -rf tests/ .github/ .pytest_cache/ .env 2>/dev/null
 
           # 3. Créer une branche orpheline 'deploy'
           # Cela crée une branche qui n'a aucun commit parent (historique vide)

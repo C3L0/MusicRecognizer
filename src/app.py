@@ -8,6 +8,7 @@ import numpy as np
 import os
 from transformers import AutoProcessor, ASTForAudioClassification
 import psutil
+from dotenv import load_dotenv
 
 # 1. Initialisation de FastAPI
 app = FastAPI(title="Sound Recognizer API")
@@ -17,6 +18,7 @@ model_id = "MIT/ast-finetuned-audioset-10-10-0.4593"
 processor = AutoProcessor.from_pretrained(model_id, use_fast=True)
 model = ASTForAudioClassification.from_pretrained(model_id)
 
+load_dotenv()
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
 def get_system_info():
@@ -24,7 +26,7 @@ def get_system_info():
     mem = psutil.virtual_memory()
     # Récupère l'utilisation du CPU
     cpu = psutil.cpu_percent()
-    return f"💻 CPU: {cpu}% | 🧠 RAM: {mem.percent}% ({mem.used // (1024**2)}MB / {mem.total // (1024**2)}MB)"
+    return f"💻 CPU: {cpu}% | RAM: {mem.percent}% ({mem.used // (1024**2)}MB / {mem.total // (1024**2)}MB)"
 
 def process_audio(audio_path):
     """Logique partagée entre l'API et l'Interface"""
