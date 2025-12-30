@@ -35,10 +35,10 @@ def test_predict_success():
     # 1 seconde de silence à 16kHz
     data = np.zeros(16000)
     byte_io = io.BytesIO()
-    sf.write(byte_io, data, 16000, format='WAV')
+    sf.write(byte_io, data, 16000, format='mp3')
     byte_io.seek(0)
 
-    files = {"file": ("silence.wav", byte_io, "audio/mp3")}
+    files = {"file": ("silence.mp3", byte_io, "audio/mp3")}
     response = client.post("/predict", files=files)
     
     assert response.status_code == 200
