@@ -1,25 +1,24 @@
 FROM python:3.11-slim
 
-# 1. Installer les dépendances système pour l'audio
+# Install dependances for audio
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Installer uv
+# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# 3. Copier les fichiers de dépendances
+# Copy dependance files
 COPY pyproject.toml uv.lock ./
 
-# 4. Installer les dépendances Python via uv
+# Install python dependance with uv
 RUN uv sync --frozen --no-dev
 
-# 6. Copier le reste du code
+# Copy the rest of the code
 COPY . .
 
-# 7. Exécuter l'API en utilisant le venv créé par uv
-# Le chemin par défaut est /app/.venv/bin/python
+# Execute the API using the venv made by uv
 CMD ["/app/.venv/bin/python", "-m", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "7860"]

@@ -36,21 +36,19 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 1. Configurer l'identité Git
+          # Configure git identity
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # 2. Supprimer physiquement les fichiers interdits
+          # Delete prohibided files
           rm -rf tests/ .github/ .pytest_cache/ .env 2>/dev/null
 
-          # 3. Créer une branche orpheline 'deploy'
-          # Cela crée une branche qui n'a aucun commit parent (historique vide)
+          # Create orphan branch 'deploy'
           git checkout --orphan deploy
 
-          # 4. Ajouter les fichiers actuels à cette branche propre
+          # Add actual files in the clean branch
           git add .
           git commit -m "Production release without tests"
 
-          # 5. Pousser cette branche propre vers la branche 'main' de Hugging Face
-          # On utilise --force pour écraser le contenu distant par cette version "propre"
+          # Push the clean branch to the main branch in hugging face
           git push --force https://c3loo:$HF_TOKEN@huggingface.co/spaces/c3loo/sounds_recognizer deploy:main

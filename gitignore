@@ -4,24 +4,20 @@ __pycache__/
 *$py.class
 .ipynb_checkpoints/
 
-# --- Environnements Virtuels ---
-# On ne pousse jamais le venv lui-même
+# --- Venv ---
 .venv/
 env/
 venv/
 ENV/
 
-# --- Outil UV ---
-# On garde uv.lock et pyproject.toml, mais pas le cache
+# --- uv tool ---
 .uv/
 
-# --- Modèles et Données (Très important en ML) ---
-# Si tu télécharges le modèle localement dans un dossier
+# --- Models and data ---
 models/
 *.bin
 *.pth
 *.onnx
-# Dossier de cache Hugging Face par défaut (si tu le changes)
 .cache/
 
 # --- OS & IDE ---
@@ -30,6 +26,5 @@ models/
 .idea/
 
 # --- Secrets ---
-# Pour tes futures clés AWS
 .env
 *.pemt
