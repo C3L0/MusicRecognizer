@@ -17,6 +17,8 @@ model_id = "MIT/ast-finetuned-audioset-10-10-0.4593"
 processor = AutoProcessor.from_pretrained(model_id, use_fast=True)
 model = ASTForAudioClassification.from_pretrained(model_id)
 
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
+
 def get_system_info():
     # Récupère l'utilisation de la RAM
     mem = psutil.virtual_memory()
@@ -63,7 +65,7 @@ async def predict_api(file: UploadFile = File(...)):
 @app.get("/admin/stats")
 async def get_admin_stats(token: str = None):
     # Optionnel : une petite sécurité par token
-    if token != "admin":
+    if token != ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Non autorisé")
         
     mem = psutil.virtual_memory()
@@ -107,7 +109,7 @@ with gr.Blocks(css=custom_css) as demo:
             btn_stats = gr.Button("Actualiser les stats")
             
             def show_stats(key):
-                if key == "admin": # Ton code secret
+                if key == ADMIN_TOKEN: # Ton code secret
                     mem = psutil.virtual_memory()
                     return {"cpu": psutil.cpu_percent(), "ram_percent": mem.percent}
                 return {"error": "Clé invalide"}
@@ -123,4 +125,5 @@ with gr.Blocks(css=custom_css) as demo:
 app = gr.mount_gradio_app(app, demo, path="/")
 
 if __name__ == "__main__":
+    print(ADMIN_TOKEN)
     uvicorn.run(app, host="127.0.0.1", port=7860)
